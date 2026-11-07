@@ -69,7 +69,8 @@ correspa-ai/
 ├── main.py                    # Entry point — runs the workflow as a continuous local process
 ├── deploy_api.py               # Exposes the workflow as a FastAPI/LangServe endpoint
 ├── create_index.py             # Builds/refreshes the Chroma vector store from source documents
-├── requirements.txt             # Python dependencies
+├── pyproject.toml              # Project metadata and dependencies
+├── uv.lock                     # Locked dependency versions (commit this)
 ├── workflow.png                # Visual diagram of the LangGraph workflow
 ├── data/
 │   └── agency.txt               # Source knowledge documents used to ground RAG responses
@@ -89,7 +90,7 @@ correspa-ai/
 
 ### Prerequisites
 
-- Python 3.7+
+- [uv](https://docs.astral.sh/uv/) (installs Python 3.11 for you from `.python-version`)
 - A Groq API key
 - A Google Gemini API key (used for embeddings)
 - Gmail API credentials for the inbox you want to automate
@@ -100,23 +101,18 @@ correspa-ai/
 
 ```sh
    git clone https://github.com/<your-username>/correspa-ai.git
-   cd correspa-ai
+   cd correspa-ai/correspa-ai
 ```
 
-2. **Create and activate a virtual environment**
+2. **Install dependencies**
 
 ```sh
-   python -m venv venv
-   source venv/bin/activate   # On Windows: venv\Scripts\activate
+   uv sync
 ```
 
-3. **Install dependencies**
+   This creates `.venv/` and installs the exact versions in `uv.lock`. Add or remove packages with `uv add` / `uv remove`, never by hand.
 
-```sh
-   pip install -r requirements.txt
-```
-
-4. **Configure environment variables**
+3. **Configure environment variables**
 
    Create a `.env` file in the project root:
 
@@ -126,7 +122,7 @@ correspa-ai/
    GOOGLE_API_KEY=your_gemini_api_key
 ```
 
-5. **Enable the Gmail API**
+4. **Enable the Gmail API**
 
    Follow [Google's Python quickstart guide](https://developers.google.com/gmail/api/quickstart/python) to enable the Gmail API and obtain your OAuth credentials.
 
@@ -135,7 +131,7 @@ correspa-ai/
 **Run the workflow locally**
 
 ```sh
-python main.py
+uv run main.py
 ```
 
 The application will continuously check the inbox, categorize new emails, generate responses, and verify them before queuing drafts.
@@ -143,10 +139,19 @@ The application will continuously check the inbox, categorize new emails, genera
 **Deploy as an API**
 
 ```sh
-python deploy_api.py
+uv run deploy_api.py
 ```
 
 This starts a FastAPI/LangServe server on `localhost:8000`. API docs are available at `/docs`, and an interactive LangServe playground is available at `/playground`.
+
+**Production**
+
+```sh
+uv sync --frozen --no-dev
+uv run --frozen --no-dev deploy_api.py
+```
+
+`--frozen` fails if `uv.lock` and `pyproject.toml` disagree instead of quietly re-resolving. If a platform needs a `requirements.txt`, generate it with `uv export --frozen --no-dev -o requirements.txt`.
 
 ### Customization
 
@@ -154,7 +159,7 @@ This starts a FastAPI/LangServe server on `localhost:8000`. API docs are availab
 - Add your own company/product knowledge to the `data/` folder, then rebuild the vector index:
 
 ```sh
-  python create_index.py
+  uv run create_index.py
 ```
 
 ## Attribution
